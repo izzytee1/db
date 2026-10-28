@@ -1252,8 +1252,8 @@ body{
       line-height: 1.5;background:var(--v30-bg);color:var(--v30-text);letter-spacing:-.01em;color:#263238}
 header{background:#fff!important}
 .topbar-brand{border-right:0!important;padding-right:7px!important}
-.brand-wordmark{display:inline-flex;align-items:baseline;gap:5px;line-height:1;color:#182d41;white-space:nowrap;position:relative;padding-bottom:9px;gap:5px;align-items:baseline;align-items:baseline;gap:5px}
-.brand-name,.brand-2k{font-size:22px!important;font-weight:730!important;letter-spacing:-.045em!important;line-height:1!important}
+.brand-wordmark{display:inline-flex;align-items:baseline;gap:5px;line-height:1;color:#182d41;white-space:nowrap;position:relative;padding-bottom:0;transform:translateY(4px)}
+.brand-name,.brand-2k{font-size:22px!important;font-weight:780!important;letter-spacing:-.045em!important;line-height:1!important}
 .brand-name{color:#263238!important}.brand-2k{color:#087f6e!important}
 
 .top-nav{gap:13px!important}
@@ -1303,6 +1303,9 @@ body.mobile-landscape-preview #visual-inspector-panel.open{display:flex!importan
 .audit-nav-count.audit-bad{background:#fff0f0;border-color:#efb6b6;color:#b73539}
 .audit-nav-count.audit-warn{background:#fff5df;border-color:#e9d09b;color:#936313}
 .audit-nav-count.audit-good{background:#f0f3f5;border-color:#dbe3e8;color:#64748b}
+.audit-nav-count[hidden]{display:none!important}
+#mobile-nav-audit>span{position:relative}
+#mobile-nav-audit #audit-mobile-count{position:absolute;left:calc(100% + 5px);top:50%;transform:translateY(-50%)}
 
 #audit-project-filename{max-width:48%;min-width:0;flex:0 1 48%;height:22px;min-height:22px;border:0;padding:0;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;background:transparent;color:#758499;font-family:Inter,system-ui,sans-serif;font-weight:400;cursor:copy;flex:1 1 auto!important;max-width:none!important;min-width:25px!important;overflow:hidden!important;text-overflow:clip!important;text-align:right!important;color:#5d7077!important}
 #view-workspace #findings-list{display:flex;flex-direction:column;gap:7px;padding:0 16px 12px;gap:10px;padding-top:5px}
@@ -1329,16 +1332,6 @@ body.mobile-landscape-preview #visual-inspector-panel.open{display:flex!importan
  .top-project-controls{gap:6px!important}
  #d2-project-page-select{width:90px}
 }
-
-#view-workspace #findings-list{gap:5px;padding-top:1px}
-#view-workspace #findings-list .finding-card{border-radius:6px}
-#view-workspace #findings-list .b006-finding-head{padding:7px 9px;cursor:default}
-#view-workspace #findings-list .b006-finding-body{padding:0 9px 6px;line-height:1.35}
-#view-workspace #findings-list .b006-finding-body p{margin:0 0 3px;line-height:1.35}
-#view-workspace #findings-list .b006-evidence{margin:3px 0 0;padding-top:3px}
-#view-workspace #findings-list .b006-evidence pre{padding:4px 0;line-height:1.35}
-.db24-error-copy{margin-left:auto;display:inline-grid;place-items:center;flex:0 0 26px;width:26px;height:26px;min-height:26px;padding:3px;border:0;border-radius:4px;background:transparent;color:#607585;cursor:pointer}
-.db24-error-copy:hover{background:#e8eff2;color:#264554}
 </style>
 
 
@@ -1373,7 +1366,7 @@ body.mobile-landscape-preview #visual-inspector-panel.open{display:flex!importan
         <button type="button" class="workspace-icon-btn" data-desktop-view="view-home" onclick="switchView('view-home')"><span class="nav-label">Home</span></button>
         <button type="button" class="workspace-icon-btn" data-desktop-view="view-workspace" onclick="switchView('view-workspace')"><span class="nav-label">Viewer</span></button>
         <button type="button" class="workspace-icon-btn" id="btn-inspect-toolbar" data-edit-toggle onclick="openEditFromNav()" aria-label="Edit page" aria-pressed="false"><span class="nav-label">Edit</span><span class="visual-issue-badge" id="visual-issue-badge">0</span></button>
-        <button type="button" class="workspace-icon-btn" id="visual-editor-audit-toggle" onclick="openAuditFromNav()" aria-label="Audit and console" aria-expanded="false"><span class="nav-label">Audit</span> <span class="audit-nav-count audit-good" id="audit-nav-count">0</span></button>
+        <button type="button" class="workspace-icon-btn" id="visual-editor-audit-toggle" onclick="openAuditFromNav()" aria-label="Audit and console" aria-expanded="false"><span class="nav-label">Audit</span> <span class="audit-nav-count audit-good" id="audit-nav-count" hidden></span></button>
         <button type="button" class="workspace-icon-btn" id="btn-workspace-more" onclick="toggleWorkspacePopover('workspace-more-menu')" aria-expanded="false" aria-controls="workspace-more-menu"><span class="nav-label">Tools</span> </button>
       </nav>
       <div class="workspace-tools-backdrop" id="workspace-tools-backdrop" aria-hidden="true" onclick="closeWorkspacePopovers()"></div>
@@ -1668,7 +1661,7 @@ body.mobile-landscape-preview #visual-inspector-panel.open{display:flex!importan
     <button type="button" data-mobile-view="view-home" onclick="switchView('view-home')"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.5 12 3l9 7.5V21h-6v-7H9v7H3z"/></svg><span>Home</span></button>
     <button type="button" data-mobile-view="view-workspace" onclick="switchView('view-workspace');setMobileWorkspaceScreen('preview')"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18"/></svg><span>Viewer</span></button>
     <button type="button" id="mobile-nav-edit" onclick="openEditFromNav()"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="m4 20 4-.9L19 8a2 2 0 0 0-3-3L5 16l-1 4Z"/><path d="m14 7 3 3"/></svg><span>Edit</span></button>
-    <button type="button" id="mobile-nav-audit" onclick="openAuditFromNav()"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10l4 4v14H3V3h4Zm9 0v5h5"/><path d="m7 15 3 3 6-7"/></svg><span>Audit <span class="audit-nav-count audit-good" id="audit-mobile-count">0</span></span></button>
+    <button type="button" id="mobile-nav-audit" onclick="openAuditFromNav()"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h10l4 4v14H3V3h4Zm9 0v5h5"/><path d="m7 15 3 3 6-7"/></svg><span>Audit <span class="audit-nav-count audit-good" id="audit-mobile-count" hidden></span></span></button>
     <button type="button" id="mobile-more-nav-btn" aria-expanded="false" onclick="toggleWorkspacePopover('workspace-more-menu')"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg><span>More</span></button>
   </nav>
 
@@ -1678,7 +1671,6 @@ body.mobile-landscape-preview #visual-inspector-panel.open{display:flex!importan
       <div class="modal-header"><span id="convert-modal-title">Export HTML</span></div>
       <div class="modal-body" style="padding:18px;display:flex;flex-direction:column;gap:12px;">
         <p style="font-size:13px;color:var(--text-muted);margin:0;">These two buttons only work on a normal HTML website. A React project like your CRM cannot be turned into a fake HTML site.</p>
-        <button class="btn btn-outline" onclick="downloadActiveEntryFile(); closeConvertModal();">Download original HTML</button>
         <button class="btn btn-primary" onclick="convertAndDownload('single-html'); closeConvertModal();">Make one HTML file</button>
         <button class="btn btn-outline" onclick="convertAndDownload('multi-html'); closeConvertModal();">Split into folders</button>
       </div>
@@ -1780,7 +1772,7 @@ body.mobile-landscape-preview #visual-inspector-panel.open{display:flex!importan
         <button class="btn btn-outline btn-sm" type="button" onclick="triggerPasteUpload()">Upload file</button>
         <div style="display: flex; gap: 6px; flex-wrap: wrap;">
           <button class="btn btn-subtle btn-sm" type="button" onclick="copyPastedCode()">Copy</button>
-          <button class="btn btn-primary btn-sm" type="button" onclick="downloadPastedDirectly()">Save file</button>
+          <button class="btn btn-primary btn-sm" type="button" onclick="downloadPastedDirectly()">Download</button>
           <button class="btn btn-dark btn-sm" type="button" onclick="loadPastedToWorkspace()">Open in viewer</button>
         </div>
       </div>
@@ -19674,7 +19666,7 @@ codePos,
       const uploadNamePart = document.getElementById('upload-current-file-part');
       const uploadName = document.getElementById('upload-current-filename');
       if (uploadNamePart && uploadName) {
-        const originalName = hasFiles ? (STATE.uploadedFilename || STATE.projectName || STATE.entryFile || '') : 'DB.23.html';
+        const originalName = hasFiles ? (STATE.uploadedFilename || STATE.projectName || STATE.entryFile || '') : 'DB.24.html';
         uploadName.textContent = originalName;
         uploadName.title = originalName;
         uploadNamePart.hidden = false;
@@ -19981,7 +19973,7 @@ codePos,
       visualIssues: [],
       devicePreset: 'desktop',
       defaultPreview: 'desktop',
-      previewUserScale: 1, touchMode: 'pan',
+      previewUserScale: 1, touchMode: 'interact',
       phoneLandscape: false,
       previewPanX: 0,
       previewPanY: 0,
@@ -20170,7 +20162,7 @@ codePos,
       const stageW = Math.max(1, stage.clientWidth);
       const stageH = Math.max(1, stage.clientHeight);
       const desktopZoomed = !mobileMock && !previewUsesDesktopFrame(preset) && Math.abs((Number(STATE.previewUserScale) || 1) - 1) > 0.001;
-      const useCanvas = full || mobileMock || previewUsesDesktopFrame(preset) || desktopZoomed || (window.matchMedia('(pointer: coarse)').matches && STATE.touchMode === 'pan');
+      const useCanvas = !full && (mobileMock || previewUsesDesktopFrame(preset) || desktopZoomed);
       vp.classList.remove('mobile-mock', 'desktop-frame');
       if (!useCanvas) {
         STATE.previewFit = 1; STATE.zoom = 1;
@@ -20182,8 +20174,8 @@ codePos,
         if (layer) layer.hidden = true;
         return;
       }
-      const virtW = (full || desktopZoomed) ? stageW : mobileMock ? (STATE.phoneLandscape ? 844 : 390) : 1200;
-      const virtH = (full || desktopZoomed) ? stageH : mobileMock ? (STATE.phoneLandscape ? 390 : 844) : 800;
+      const virtW = desktopZoomed ? stageW : mobileMock ? (STATE.phoneLandscape ? 844 : 390) : 1200;
+      const virtH = desktopZoomed ? stageH : mobileMock ? (STATE.phoneLandscape ? 390 : 844) : 800;
       // In portrait phones, rotate only the landscape preview to use the available stage.
       const rotatedPhone = mobileMock && !!STATE.phoneLandscape && stageH > stageW
         && window.matchMedia('(max-width: 950px)').matches;
@@ -20323,10 +20315,10 @@ codePos,
       let lastX = 0;
       let lastY = 0;
       let moved = false;
-      const onStage = () => STATE.touchMode === 'pan' && (document.body.classList.contains('panoramic-preview') || document.body.classList.contains('mobile-landscape-preview') || window.matchMedia('(pointer: coarse)').matches || previewUsesDesktopFrame());
+      const onStage = () => STATE.touchMode === 'pan' && (previewUsesDesktopFrame() || (STATE.devicePreset === 'mobile' && window.matchMedia('(pointer: coarse)').matches));
       const applyPinchPan = (clientX, clientY, nextUserScale) => {
         const oldScale = STATE.previewFit * STATE.previewUserScale;
-        STATE.previewUserScale = Math.max(0.5, Math.min(4, nextUserScale));
+        STATE.previewUserScale = Math.max(1, Math.min(4, nextUserScale));
         const newScale = STATE.previewFit * STATE.previewUserScale;
         const rect = stage.getBoundingClientRect();
         const x = clientX - rect.left;
@@ -27228,40 +27220,45 @@ ${issues.length ? issues.map(visualIssueToPrompt).join('\n\n---\n\n') : 'No visu
       if (consoleDetails && document.querySelector('#b005-console .b005-log-line[data-severity="err"],#b005-console .b005-log-line[data-severity="error"]')) consoleDetails.open = true;
     }
 
-    function copyAuditErrors() {
-      const findings = [...(STATE.auditReport.findings || []), ...(STATE.auditReport.cleanup || [])];
-      const runtime = (STATE.runtimeLogs || []).filter(log => /error|err/i.test(String(log.level || log.severity || '')));
-      const rows = [...findings, ...runtime.map(log => ({title: String(log.message || ''), evidence: String(log.source || log.message || '')}))];
-      const file = String(STATE.uploadedFilename || STATE.projectName || 'project').split('/').pop();
-      const lines = rows.map((f, i) => {
-        const evidence = [f.evidence, ...(f.locations || []).map(x => x.file + (x.line ? ':' + x.line : ''))].filter(Boolean).join('\n');
-        return (i + 1) + '. ' + String(f.title || f.desc || 'Error').trim() + (evidence ? '\n' + evidence : '');
-      });
-      const output = file + ' Errors' + (lines.length ? '\n\n' + lines.join('\n\n') : '\n\nNo errors.');
-      navigator.clipboard.writeText(output).then(() => showToast('Errors copied.'), () => {
-        const field = document.createElement('textarea'); field.value = output; document.body.append(field); field.select(); document.execCommand('copy'); field.remove(); showToast('Errors copied.');
-      });
-    }
-
     function renderFindingCard(f) {
-      const card = document.createElement('div');
+      const card = document.createElement('details');
       card.className = 'finding-card ' + (String(f.severity || '').toLowerCase() === 'high' ? 'audit-high' : 'audit-medium');
-      const heading = document.createElement('div'); heading.className = 'b006-finding-head';
-      const name = document.createElement('span'); name.className = 'b006-finding-title'; name.textContent = f.title || 'Confirmed issue';
-      const copy = document.createElement('button'); copy.type='button'; copy.className='db24-error-copy'; copy.title='Copy numbered errors and evidence'; copy.setAttribute('aria-label','Copy errors');
-      copy.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/></svg>';
-      copy.addEventListener('click', copyAuditErrors);
-      heading.append(name, copy); card.append(heading);
-      const body = document.createElement('div'); body.className='b006-finding-body';
-      if (f.desc && f.desc !== f.title) { const desc=document.createElement('p'); desc.textContent=f.desc; body.append(desc); }
-      const locations = Array.isArray(f.locations) ? f.locations : [];
-      if (f.evidence || f.rootCause || locations.length) {
-        const proof = document.createElement('details'); proof.className='b006-evidence';
-        const summary=document.createElement('summary'); summary.textContent='Technical evidence';
-        const pre=document.createElement('pre'); pre.textContent=[f.evidence,f.rootCause && 'Cause: '+f.rootCause,locations.map(x=>x.file+(x.line?':'+x.line:'')).join(' · ')].filter(Boolean).join('\n');
-        proof.append(summary,pre);body.append(proof);
+      card.open=true;
+      const title = document.createElement('summary');
+      title.className = 'b006-finding-head';
+      const name = document.createElement('span');
+      name.className = 'b006-finding-title';
+      name.textContent = f.title || 'Confirmed issue';
+      title.append(name);
+      if (Number(f.count) > 1) {
+        const repeat = document.createElement('span');
+        repeat.className = 'b006-finding-repeat';
+        repeat.textContent = '×' + Number(f.count);
+        title.append(repeat);
       }
-      if (body.childNodes.length) card.append(body);
+      const body = document.createElement('div');
+      body.className = 'b006-finding-body';
+      const description = document.createElement('p');
+      description.textContent = f.desc || f.title || 'A project check failed.';
+      body.append(description);
+      if (f.fix) {
+        const fix = document.createElement('p');
+        fix.textContent = 'Fix: ' + f.fix;
+        body.append(fix);
+      }
+      const location = Array.isArray(f.locations) && f.locations.length ? f.locations : [];
+      if (f.evidence || f.rootCause || location.length) {
+        const proof = document.createElement('details');
+        proof.className = 'b006-evidence';
+        proof.open = String(f.severity || '').toLowerCase() === 'high';
+        const summary = document.createElement('summary');
+        summary.textContent = 'Technical evidence';
+        const pre = document.createElement('pre');
+        pre.textContent = [f.evidence, f.rootCause && 'Cause: ' + f.rootCause,
+          location.map(item => item.file + (item.line ? ':' + item.line : '')).join(' · ')].filter(Boolean).join('\n');
+        proof.append(summary,pre); body.append(proof);
+      }
+      card.append(title,body);
       return card;
     }
 
@@ -27288,7 +27285,7 @@ ${issues.length ? issues.map(visualIssueToPrompt).join('\n\n---\n\n') : 'No visu
       const badgeTone = all.some(f => String(f.severity||'').toLowerCase() === 'high') ? 'audit-bad' : count ? 'audit-warn' : 'audit-good';
       ['audit-nav-count','audit-mobile-count'].forEach(id => {
         const badge = document.getElementById(id);
-        if (badge) {badge.textContent=String(count);badge.className='audit-nav-count '+badgeTone;badge.setAttribute('aria-label',count+' unique confirmed issues');}
+        if (badge) {badge.textContent=String(count);badge.className='audit-nav-count '+badgeTone;badge.hidden=count===0 || !Object.keys(STATE.files || {}).length;badge.setAttribute('aria-label',count+' unique confirmed issues');}
       });
       list.replaceChildren();
       if (!count) {
@@ -29105,10 +29102,7 @@ Use saved source hints only when marked exact or verified. If a marker has no sa
       }
       const f = STATE.files[entryFile];
       const filename = entryFile.split('/').pop() || 'index.html';
-      const chosen = window.prompt('Download filename', filename);
-      if (chosen === null) return;
-      const output = sanitizeDownloadName(chosen, filename);
-      downloadBlob(getVirtualFileBlob(f, filename), output);
+      downloadBlob(getVirtualFileBlob(f, filename), filename);
       showToast(`Downloaded: ${filename}`);
     }
 
@@ -29355,18 +29349,6 @@ Use saved source hints only when marked exact or verified. If a marker has no sa
     function setupPasteDialog() {
       const area = document.getElementById('paste-input-area');
       const upload = document.getElementById('paste-upload-input');
-      const filenameInput = document.getElementById('paste-custom-filename');
-      if (filenameInput) filenameInput.addEventListener('change', () => {
-        const next = filenameInput.value.trim();
-        if (!next || next === PASTE_ACTIVE) return;
-        const prior = PASTE_ACTIVE;
-        if (PASTE_FILES[prior] !== undefined && PASTE_FILES[next] === undefined) {
-          PASTE_FILES[next] = area?.value || PASTE_FILES[prior];
-          delete PASTE_FILES[prior];
-        }
-        PASTE_ACTIVE = next;
-        renderPasteFileChips();
-      });
       if (area) {
         area.addEventListener('paste', () => setTimeout(() => { stashPasteActive(); flashPasteNextLine(); renderPasteFileChips(); }, 0));
         area.addEventListener('input', () => stashPasteActive());
