@@ -1,84 +1,82 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#ffffff">
-  <title>DEBOOGER 2K</title>
-  <style>
-    :root{font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color-scheme:light}
-    *{box-sizing:border-box}body{min-height:100dvh;display:grid;place-items:center;margin:0;padding:24px;background:#f7f9fb;color:#263238}
-    main{width:min(420px,100%);padding:30px;border:1px solid #e0e7ec;border-radius:13px;background:#fff;box-shadow:0 12px 40px #172b4310;text-align:center}
-    h1{margin:0;font-size:22px;font-weight:600;letter-spacing:-.035em}h1 span{color:#087f6e}
-    p{margin:16px 0;color:#607179;font-size:14px;line-height:1.5}a{color:#087f6e;font-weight:500;overflow-wrap:anywhere}
-    .spinner{width:24px;height:24px;border:2px solid #ddebe6;border-top-color:#087f6e;border-radius:50%;margin:21px auto 0;animation:spin .7s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.spinner{animation:none}}
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f9fb">
+<title>DEBOOGER 2K</title>
+<style>
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#f7f9fb}
+  iframe{display:block;position:fixed;inset:0;width:100%;height:100%;height:100dvh;border:0;background:#f7f9fb}
+</style>
 </head>
 <body>
-  <main>
-    <h1>DEBOOGER <span>2K</span></h1>
-    <div class="spinner" id="spinner" aria-hidden="true"></div>
-    <p id="status" role="status">Opening the latest version…</p>
-    <a id="fallback-link" href="./DB23-download.html">Open DB23-download.html manually</a>
-  </main>
-  <script>
-    (async () => {
-      const status = document.getElementById('status');
-      const link = document.getElementById('fallback-link');
-      const spinner = document.getElementById('spinner');
-      // Accept DB.23.html, DB23.html and DB23-download.html (case insensitive).
-      // Prefer the canonical DB.XX.html name when two files have the same version.
-      const parse = name => {
-        const match = /^DB\.?([0-9]+)(?:-download)?\.html$/i.exec(name);
-        if (!match) return null;
-        const version = Number(match[1]);
-        if (!Number.isSafeInteger(version)) return null;
-        return { name, version, priority: /^DB\.[0-9]+\.html$/i.test(name) ? 2 : 1 };
-      };
-      const candidates = [];
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 5000);
-      try {
-        const response = await fetch('https://api.github.com/repos/izzytee1/db/contents/', {
-          signal: controller.signal,
-          cache: 'no-store',
-          headers: { Accept: 'application/vnd.github+json' }
-        });
-        if (!response.ok) throw new Error('Listing unavailable');
-        const entries = await response.json();
-        if (!Array.isArray(entries)) throw new Error('Invalid listing');
-        for (const entry of entries) {
-          if (entry.type !== 'file' || typeof entry.name !== 'string') continue;
-          const candidate = parse(entry.name);
-          if (candidate) candidates.push(candidate);
+<iframe id="app" title="DEBOOGER 2K" allow="clipboard-read; clipboard-write; fullscreen" allowfullscreen></iframe>
+<script>
+(() => {
+  'use strict';
+  const frame = document.getElementById('app');
+  const key = 'debooger-db-router-last-file-v1';
+  const defaultFile = 'DB23-download.html';
+  const parse = name => {
+    const match = /^DB\.?([0-9]+)(?:-download)?\.html$/i.exec(name);
+    if (!match) return null;
+    const version = Number(match[1]);
+    return Number.isSafeInteger(version) ? { name, version, canonical: /^DB\.[0-9]+\.html$/i.test(name) } : null;
+  };
+  const filename = name => typeof name === 'string' && parse(name) ? name : null;
+  let remembered;
+  try { remembered = filename(localStorage.getItem(key)); } catch (_) { /* Storage optional. */ }
+  let current = remembered || defaultFile;
+  const pathFor = name => './' + encodeURIComponent(name);
+  // Begin opening the known file immediately; do not block on GitHub's API.
+  frame.src = pathFor(current);
+  const remember = name => { try { localStorage.setItem(key, name); } catch (_) {} };
+  const check = async name => {
+    try {
+      const response = await fetch(pathFor(name), { method: 'HEAD', cache: 'no-store' });
+      return response.ok;
+    } catch (_) { return false; }
+  };
+  (async () => {
+    let candidates = [];
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 4000);
+    try {
+      const response = await fetch('https://api.github.com/repos/izzytee1/db/contents/', {
+        signal: controller.signal, cache: 'no-store',
+        headers: { Accept: 'application/vnd.github+json' }
+      });
+      if (response.ok) {
+        const files = await response.json();
+        if (Array.isArray(files)) candidates = files
+          .filter(file => file.type === 'file')
+          .map(file => parse(file.name)).filter(Boolean);
+      }
+    } catch (_) { /* Continue opening the last known working file. */ }
+    finally { clearTimeout(timer); }
+    candidates.sort((a,b) => b.version - a.version || Number(b.canonical) - Number(a.canonical));
+    const preferred = candidates[0];
+    if (preferred && preferred.name !== current && await check(preferred.name)) {
+      current = preferred.name;
+      remember(current);
+      frame.src = pathFor(current);
+    } else if (await check(current)) {
+      remember(current);
+    } else {
+      // A previously saved name was removed; try known versions without a 404 redirect.
+      const fallbacks = [defaultFile, 'DB.23.html', ...candidates.map(c => c.name)];
+      for (const name of [...new Set(fallbacks)]) {
+        if (name !== current && await check(name)) {
+          current = name;
+          remember(current);
+          frame.src = pathFor(current);
+          break;
         }
-      } catch (_) {
-        status.textContent = 'Checking available versions…';
-      } finally {
-        clearTimeout(timeout);
       }
-      // On API failure, test both the current repo filename and the usual canonical filename.
-      // Deduplicate, sort numerically and never navigate to an unverified missing destination.
-      for (const name of ['DB23-download.html', 'DB.23.html']) {
-        if (!candidates.some(c => c.name.toLowerCase() === name.toLowerCase())) candidates.push(parse(name));
-      }
-      candidates.sort((a,b) => b.version-a.version || b.priority-a.priority);
-      for (const { name } of candidates) {
-        const path = './' + encodeURIComponent(name);
-        try {
-          const result = await fetch(path, {method:'HEAD',cache:'no-store'});
-          if (!result.ok) continue;
-          link.href = path;
-          link.textContent = 'Open ' + name + ' manually';
-          window.location.replace(path);
-          return;
-        } catch (_) { /* Try the next file. */ }
-      }
-      spinner.hidden = true;
-      status.textContent = 'No published DB version could be found. Upload a DB HTML file to the repository root and check GitHub Pages settings.';
-      link.hidden = true;
-    })();
-  </script>
+    }
+  })();
+})();
+</script>
 </body>
 </html>
