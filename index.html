@@ -1,147 +1,67 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#111820">
-  <title>DEBOOGER 2K</title>
-  <style>
-    :root { color-scheme: dark; font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-    * { box-sizing: border-box; }
-    html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #111820; }
-    #app { position: fixed; inset: 0; width: 100%; height: 100%; height: 100dvh; border: 0; display: none; background: #111820; }
-    #status { position: fixed; inset: 0; display: flex; justify-content: center; align-items: center; flex-direction: column; gap: 14px; padding: 24px; text-align: center; color: #d9e1e6; }
-    #message { font-size: 14px; font-weight: 400; letter-spacing: .01em; line-height: 1.5; max-width: 420px; }
-    #retry { display: none; padding: 9px 20px; background: #243642; color: #eef5f7; border: 1px solid #3a5260; border-radius: 5px; font: inherit; font-size: 14px; cursor: pointer; }
-    #retry:hover { background: #314752; }
-    #retry:focus-visible { outline: 2px solid #88d7cb; outline-offset: 3px; }
-  </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta http-equiv="Cache-Control" content="no-cache">
+<title>DEBOOGER</title>
+<script>
+'use strict';
+/* Permanent router: upload new DB.##.html releases; never edit index.html again. */
+(() => {
+  const API = 'https://api.github.com/repos/izzytee1/debooger/contents?ref=main';
+  const CACHE_KEY = 'debooger_router_last_release_v1';
+  const STARTER = 'DB.32.html';
+  const VERSION = /^DB\.(\d+)\.html$/i;
+  const appPath = location.pathname.endsWith('/') ? location.pathname : location.pathname.replace(/[^/]*$/, '');
+
+  function validName(name) {
+    return typeof name === 'string' && VERSION.test(name) && Number.isSafeInteger(Number(name.match(VERSION)[1]));
+  }
+  function destination(name) {
+    const target = new URL(name, location.origin + appPath);
+    target.search = location.search;
+    target.hash = location.hash;
+    return target.href;
+  }
+  function savedName() {
+    try {
+      const name = localStorage.getItem(CACHE_KEY);
+      return validName(name) ? name : STARTER;
+    } catch (_) { return STARTER; }
+  }
+  function openRelease(name) {
+    if (!validName(name)) return;
+    try { localStorage.setItem(CACHE_KEY, name); } catch (_) { /* private mode */ }
+    location.replace(destination(name));
+  }
+  async function run() {
+    const controller = new AbortController();
+    const deadline = setTimeout(() => controller.abort(), 2500);
+    try {
+      const response = await fetch(API, {
+        headers: { 'Accept': 'application/vnd.github+json' },
+        cache: 'no-store',
+        signal: controller.signal
+      });
+      if (!response.ok) throw new Error('GitHub listing unavailable: ' + response.status);
+      const files = await response.json();
+      if (!Array.isArray(files)) throw new Error('Unexpected repository listing');
+      const releases = files.filter(file => file && file.type === 'file' && validName(file.name));
+      releases.sort((a, b) => Number(b.name.match(VERSION)[1]) - Number(a.name.match(VERSION)[1]));
+      if (!releases.length) throw new Error('No DB release files found');
+      openRelease(releases[0].name);
+    } catch (_) {
+      // The public GitHub API can be offline, rate-limited or blocked.
+      // Use the last successfully discovered release without displaying a splash screen.
+      openRelease(savedName());
+    } finally {
+      clearTimeout(deadline);
+    }
+  }
+  run();
+})();
+</script>
 </head>
-<body>
-  <iframe id="app" title="DEBOOGER 2K" allow="clipboard-read; clipboard-write; fullscreen" allowfullscreen></iframe>
-  <main id="status" role="status" aria-live="polite">
-    <div id="message">Opening DEBOOGER…</div>
-    <button id="retry" type="button">Retry</button>
-  </main>
-  <script>
-    (() => {
-      'use strict';
-
-      // Edit these two values only if you change the public GitHub repository.
-      const GITHUB = { owner: 'izzytee1', repo: 'db', branch: 'main' };
-      const CACHE_KEY = 'debooger:index:latest:v1';
-      const apiUrl = `https://api.github.com/repos/${GITHUB.owner}/${GITHUB.repo}/contents/?ref=${encodeURIComponent(GITHUB.branch)}`;
-      const root = new URL('./', location.href);
-      const frame = document.getElementById('app');
-      const status = document.getElementById('status');
-      const message = document.getElementById('message');
-      const retry = document.getElementById('retry');
-      let busy = false;
-
-      // Only release HTML files are eligible. Handoffs, examples and index.html are excluded.
-      function release(name) {
-        const match = /^(DB|DEBOOG|DEBOOGER)[._-]?0*(\d+)(?:\s*\(\d+\))?(?:[-_](?:download|release))?\.html$/i.exec(name);
-        if (!match) return null;
-        const version = Number(match[2]);
-        if (!Number.isSafeInteger(version)) return null;
-        const currentStyle = match[1].toUpperCase() === 'DB';
-        const canonical = new RegExp(`^DB\\.${String(version).padStart(2, '0')}\\.html$`, 'i').test(name);
-        return { name, version, series: Number(currentStyle), canonical: Number(canonical) };
-      }
-
-      function order(files) {
-        const unique = new Map();
-        for (const name of files) {
-          const item = release(name);
-          if (item) unique.set(name, item);
-        }
-        return [...unique.values()].sort((a, b) => b.series - a.series || b.version - a.version || b.canonical - a.canonical || a.name.localeCompare(b.name));
-      }
-
-      function knownFile() {
-        try { return release(localStorage.getItem(CACHE_KEY) || '')?.name || null; }
-        catch { return null; }
-      }
-
-      function remember(name) {
-        try { localStorage.setItem(CACHE_KEY, name); } catch { /* private or unavailable storage */ }
-      }
-
-      function forget() {
-        try { localStorage.removeItem(CACHE_KEY); } catch { /* private or unavailable storage */ }
-      }
-
-      async function withTimeout(url, options, ms) {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), ms);
-        try { return await fetch(url, { ...options, signal: controller.signal }); }
-        finally { clearTimeout(timeout); }
-      }
-
-      async function available(name) {
-        // A HEAD probe ensures a deleted/cached old file cannot produce a blank 404 frame.
-        const url = new URL(encodeURIComponent(name), root);
-        url.searchParams.set('_db_probe', String(Date.now()));
-        try {
-          const result = await withTimeout(url.href, { method: 'HEAD', cache: 'no-store' }, 5000);
-          return result.ok;
-        } catch { return false; }
-      }
-
-      async function candidates() {
-        let names = [];
-        try {
-          const response = await withTimeout(apiUrl, {
-            cache: 'no-store',
-            headers: { Accept: 'application/vnd.github+json' }
-          }, 6500);
-          if (!response.ok) throw new Error(`GitHub returned ${response.status}`);
-          const contents = await response.json();
-          if (!Array.isArray(contents)) throw new Error('Repository listing unavailable');
-          names = contents.filter(x => x.type === 'file' && typeof x.name === 'string').map(x => x.name);
-        } catch { /* Try the last working file if GitHub is offline or rate-limited. */ }
-        const cached = knownFile();
-        if (cached) names.push(cached);
-        return order(names);
-      }
-
-      function showError() {
-        frame.style.display = 'none';
-        status.style.display = 'flex';
-        message.textContent = 'No published DEBOOGER release found. Upload DB.28.html (or newer) beside index.html in the repository root.';
-        retry.style.display = 'block';
-      }
-
-      async function openNewest() {
-        if (busy) return;
-        busy = true;
-        status.style.display = 'flex';
-        retry.style.display = 'none';
-        message.textContent = 'Opening DEBOOGER…';
-        try {
-          const files = await candidates();
-          for (const file of files) {
-            if (!await available(file.name)) {
-              if (knownFile() === file.name) forget();
-              continue;
-            }
-            const target = new URL(encodeURIComponent(file.name), root);
-            target.searchParams.set('release', `${file.version}`);
-            frame.onload = () => {
-              remember(file.name);
-              frame.style.display = 'block';
-              status.style.display = 'none';
-            };
-            frame.src = target.href;
-            return;
-          }
-          showError();
-        } finally { busy = false; }
-      }
-
-      retry.addEventListener('click', openNewest);
-      openNewest();
-    })();
-  </script>
-</body>
+<body></body>
 </html>
