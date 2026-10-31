@@ -3,63 +3,45 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Cache-Control" content="no-cache">
+<meta name="color-scheme" content="light">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>DEBOOGER</title>
+<style>html,body{margin:0;width:100%;height:100%;background:#fff}</style>
 <script>
 'use strict';
-/* Permanent router: upload new DB.##.html releases; never edit index.html again. */
 (() => {
-  const API = 'https://api.github.com/repos/izzytee1/debooger/contents?ref=main';
-  const CACHE_KEY = 'debooger_router_last_release_v1';
-  const STARTER = 'DB.32.html';
-  const VERSION = /^DB\.(\d+)\.html$/i;
-  const appPath = location.pathname.endsWith('/') ? location.pathname : location.pathname.replace(/[^/]*$/, '');
-
-  function validName(name) {
-    return typeof name === 'string' && VERSION.test(name) && Number.isSafeInteger(Number(name.match(VERSION)[1]));
+  // Permanent GitHub Pages router. No splash, iframe, or copied app.
+  const owner = location.hostname.split('.')[0];
+  const pieces = location.pathname.split('/').filter(Boolean);
+  const repo = pieces[0] || '';
+  const home = '/' + (repo ? repo + '/' : '');
+  const versionPattern = /^DB\.(\d+)\.html$/i;
+  const cacheKey = 'db-router:' + owner + '/' + repo;
+  const defaultFile = 'DB.34.html';
+  const valid = name => typeof name === 'string' && versionPattern.test(name);
+  function navigate(name) {
+    const target = home + encodeURIComponent(valid(name) ? name : defaultFile) + location.search + location.hash;
+    location.replace(target);
   }
-  function destination(name) {
-    const target = new URL(name, location.origin + appPath);
-    target.search = location.search;
-    target.hash = location.hash;
-    return target.href;
-  }
-  function savedName() {
-    try {
-      const name = localStorage.getItem(CACHE_KEY);
-      return validName(name) ? name : STARTER;
-    } catch (_) { return STARTER; }
-  }
-  function openRelease(name) {
-    if (!validName(name)) return;
-    try { localStorage.setItem(CACHE_KEY, name); } catch (_) { /* private mode */ }
-    location.replace(destination(name));
-  }
-  async function run() {
-    const controller = new AbortController();
-    const deadline = setTimeout(() => controller.abort(), 2500);
-    try {
-      const response = await fetch(API, {
-        headers: { 'Accept': 'application/vnd.github+json' },
-        cache: 'no-store',
-        signal: controller.signal
-      });
-      if (!response.ok) throw new Error('GitHub listing unavailable: ' + response.status);
-      const files = await response.json();
-      if (!Array.isArray(files)) throw new Error('Unexpected repository listing');
-      const releases = files.filter(file => file && file.type === 'file' && validName(file.name));
-      releases.sort((a, b) => Number(b.name.match(VERSION)[1]) - Number(a.name.match(VERSION)[1]));
-      if (!releases.length) throw new Error('No DB release files found');
-      openRelease(releases[0].name);
-    } catch (_) {
-      // The public GitHub API can be offline, rate-limited or blocked.
-      // Use the last successfully discovered release without displaying a splash screen.
-      openRelease(savedName());
-    } finally {
-      clearTimeout(deadline);
-    }
-  }
-  run();
+  let fallback = defaultFile;
+  try { const old = localStorage.getItem(cacheKey); if (valid(old)) fallback = old; } catch (_) {}
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 1400);
+  fetch('https://api.github.com/repos/' + encodeURIComponent(owner) + '/' + encodeURIComponent(repo) + '/contents?ref=main', {
+    headers: { Accept: 'application/vnd.github+json' },
+    cache: 'no-store',
+    signal: controller.signal
+  }).then(r => { if (!r.ok) throw Error('Repository unavailable'); return r.json(); })
+    .then(items => {
+      if (!Array.isArray(items)) throw Error('Invalid listing');
+      const found = items.filter(item => item && item.type === 'file' && valid(item.name))
+        .sort((a,b) => Number(b.name.match(versionPattern)[1]) - Number(a.name.match(versionPattern)[1]));
+      const latest = found.length ? found[0].name : fallback;
+      try { localStorage.setItem(cacheKey, latest); } catch (_) {}
+      navigate(latest);
+    })
+    .catch(() => navigate(fallback))
+    .finally(() => clearTimeout(timeout));
 })();
 </script>
 </head>
