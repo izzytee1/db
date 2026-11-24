@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>DEBOOGER</title>
-<style>html,body{margin:0;min-height:100%;background:#fff}</style>
+<link rel="preconnect" href="https://api.github.com" crossorigin>
 <script>
 'use strict';
 (async () => {
@@ -13,9 +13,9 @@
   const parts = base.pathname.split('/').filter(Boolean);
   const owner = location.hostname.split('.')[0];
   const repo = parts[0] || '';
-  const pattern = /^DB\.(\d+)\.html$/i;
-  const storeKey = 'db-router:' + owner + '/' + repo;
-  const knownRelease = 'DB.39.html'; // Used only when discovery and the last-known release both fail.
+  const pattern = /^DEBOOG\.(\d+)\.html$/i;
+  const storeKey = 'deboog-router:' + owner + '/' + repo;
+  const knownRelease = 'DEBOOG.22.html'; // Used only when discovery and the last-known release both fail.
   let saved = '';
   try {
     const previous = localStorage.getItem(storeKey);
@@ -27,7 +27,7 @@
     if (!pattern.test(filename)) return Promise.reject(Error('Invalid release filename'));
     if (!pending.has(filename)) {
       const path = new URL(encodeURIComponent(filename), base);
-      pending.set(filename, fetch(path, { cache: 'no-store' }).then(response => {
+      pending.set(filename, fetch(path, { cache: 'no-cache', priority: 'high' }).then(response => {
         if (!response.ok) throw Error('Release unavailable: ' + filename);
         return response.text();
       }).then(html => {
@@ -37,36 +37,35 @@
     }
     return pending.get(filename);
   }
-  if (saved) readRelease(saved).catch(() => {}); // Prepare the most recent version while discovering releases.
-
-  // Discover releases immediately, without a fixed waiting timer.
-  let versions = [];
-  try {
-    if (repo && owner) {
+  // Start discovery and the last known download together. Revalidate cached responses.
+  const discovery = (async () => {
+    try {
+      if (!repo || !owner || !/\.github\.io$/i.test(location.hostname)) return [];
       const response = await fetch('https://api.github.com/repos/' + encodeURIComponent(owner) + '/' + encodeURIComponent(repo) + '/contents?ref=main', {
         headers: { Accept: 'application/vnd.github+json' },
-        cache: 'no-store'
+        cache: 'no-cache',
+        priority: 'high'
       });
-      if (!response.ok) throw Error('Version discovery unavailable');
+      if (!response.ok) return [];
       const entries = await response.json();
-      if (!Array.isArray(entries)) throw Error('Invalid version listing');
-      versions = entries.filter(entry => entry && entry.type === 'file' && pattern.test(entry.name))
-        .map(entry => entry.name)
-        .sort((a, b) => Number(b.match(pattern)[1]) - Number(a.match(pattern)[1]));
+      if (!Array.isArray(entries)) return [];
+      return entries.filter(entry => entry && entry.type === 'file' && pattern.test(entry.name))
+        .map(entry => entry.name);
+    } catch (_) {
+      return [];
     }
-  } catch (_) {
-    // GitHub API may be unavailable or rate-limited; use the last working release.
-  }
+  })();
+  const fallback = [saved, knownRelease].filter(Boolean)
+    .sort((a, b) => Number(b.match(pattern)[1]) - Number(a.match(pattern)[1]))[0];
+  readRelease(fallback).catch(() => {});
+  const versions = await discovery;
 
-  const candidates = [...new Set([...versions, saved, knownRelease].filter(name => pattern.test(name || '')))];
+  const candidates = [...new Set([...versions, saved, knownRelease].filter(name => pattern.test(name || '')))]
+    .sort((a, b) => Number(b.match(pattern)[1]) - Number(a.match(pattern)[1]));
   for (const filename of candidates) {
     try {
       const html = await readRelease(filename);
       try { localStorage.setItem(storeKey, filename); } catch (_) {}
-      // When visiting /db/index.html directly, normalize it to /db/.
-      if (location.pathname !== base.pathname) {
-        try { history.replaceState(history.state, '', base.pathname + location.search + location.hash); } catch (_) {}
-      }
       document.open();
       document.write(html);
       document.close();
@@ -74,8 +73,7 @@
     } catch (_) {}
   }
 
-  document.body.textContent = 'Unable to open DEBOOGER. Check your connection and confirm a DB.##.html file is published.';
-  document.body.style.cssText = 'font:16px system-ui,sans-serif;padding:24px;color:#344054';
+  console.error('DEBOOGER could not load a published DEBOOG.##.html release.');
 })();
 </script>
 </head>
